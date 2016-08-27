@@ -39,18 +39,34 @@ public class Ghost {
     void moveTowardsPlayer() {
         Player player = Main.game.getPlayer();
 
-        double d = Math.random();
-
         if (player.getX() > x)
-            x++;
+            isMoveValid(x + 1, y);
         if (player.getY() > y)
-            y++;
+            isMoveValid(x, y + 1);
         if (player.getX() < x)
-            x--;
+            isMoveValid(x - 1, y);
         if (player.getY() < y)
-            x--;
+            isMoveValid(x, y - 1);
 
-        lastMove = System.currentTimeMillis();
-        Main.game.redraw();
+    }
+
+    private void isMoveValid(int x, int y) {
+        boolean valid = true;
+
+        for (Ghost ghost : Main.game.getGhosts()) {
+            if (ghost == this)
+                continue;
+            if (ghost.getX() == x && ghost.getY() == y)
+                valid = false;
+        }
+
+        if (valid) {
+            this.x = x;
+            this.y = y;
+            lastMove = System.currentTimeMillis();
+            Main.game.redraw();
+            Main.game.seeIfOnGhost();
+        }
+
     }
 }

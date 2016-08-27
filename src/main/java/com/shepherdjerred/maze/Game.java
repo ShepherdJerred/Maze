@@ -55,7 +55,7 @@ public class Game {
 
     public void createGhosts() {
         for (int i = 0; i < NUMBER_OF_GHOSTS; i++)
-            ghosts.add(new Ghost(i, i, 50, 10));
+            ghosts.add(new Ghost(i, i, 0, 10));
     }
 
     public boolean isPlaying() {
@@ -168,5 +168,9 @@ public class Game {
 
     public Player getPlayer() {
         return player;
+    }
+
+    public List<Ghost> getGhosts() {
+        return ghosts;
     }
 }
