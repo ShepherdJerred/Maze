@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Game {
 
+    public final int GHOST_COUNT = 40;
     private int status = 0;
     private Player player;
 
@@ -31,9 +32,9 @@ public class Game {
             for (int x = 0; x < Main.getConsoleWidth(); x++) {
                 double d = Math.random();
                 line = line.concat(String.valueOf(' '));
-                if (d < .1) {
+                if (d < .15) {
                     mapObjects.add(new Barrier(x, y));
-                } else if (d < .15) {
+                } else if (d < .175) {
                     mapObjects.add(new Powerup(x, y, '·', Powerup.Type.POINT, 5));
                 }
 
@@ -41,7 +42,7 @@ public class Game {
             gameLines.add(line);
         }
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < GHOST_COUNT; i++)
             mapObjects.add(new Ghost(
                     ThreadLocalRandom.current().nextInt(0, 10 + 1),
                     ThreadLocalRandom.current().nextInt(0, 10 + 1),
@@ -52,8 +53,7 @@ public class Game {
 
     void renderGame() {
 
-        // Clear the screen
-        for (int i = 0; i < Main.getConsoleHeight(); i++) System.out.println();
+        System.out.println();
 
         // Fill the map with blank characters
         // Do this first so the blanks don't ever overwrite other rendered characters
@@ -86,7 +86,12 @@ public class Game {
     }
 
     String getScoreLine() {
-        return "Score = " + player.getScore() + "          X: " + player.getX() + "   Y: " + player.getY();
+        int powerupCount = 0;
+        for (MapObject mapObject : mapObjects)
+            if (mapObject instanceof Powerup)
+                powerupCount++;
+
+        return " Score = " + player.getScore() + "          X: " + player.getX() + "   Y: " + player.getY() + "          Ghosts: " + GHOST_COUNT + "          Remaining Powerups: " + powerupCount;
     }
 
     void runGameLoop() {
@@ -197,6 +202,9 @@ public class Game {
                 e.printStackTrace();
             }
 
+            if (System.currentTimeMillis() - player.getLastMove() < 75)
+                return;
+
             int newX = player.getX();
             int newY = player.getY();
 
@@ -228,7 +236,9 @@ public class Game {
         if (newX < 0 || newY < 0 || newX > Main.getConsoleWidth() - 1 || newY > Main.getConsoleHeight() - 2)
             return false;
 
-        for (MapObject object : mapObjects) {
+        List<MapObject> mapObjectsCopy = new ArrayList<>(mapObjects);
+
+        for (MapObject object : mapObjectsCopy) {
             if (object instanceof Powerup || object instanceof Player)
                 continue;
             if (newX == object.getX() && newY == object.getY()) {
