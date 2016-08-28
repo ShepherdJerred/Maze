@@ -46,14 +46,12 @@ public class Game {
             mapObjects.add(new Ghost(
                     ThreadLocalRandom.current().nextInt(0, 10 + 1),
                     ThreadLocalRandom.current().nextInt(0, 10 + 1),
-                    ThreadLocalRandom.current().nextInt(350, 550 + 1),
+                    ThreadLocalRandom.current().nextInt(150, 550 + 1),
                     ThreadLocalRandom.current().nextInt(3, 7 + 1)
             ));
     }
 
     void renderGame() {
-
-        System.out.println();
 
         // Fill the map with blank characters
         // Do this first so the blanks don't ever overwrite other rendered characters
@@ -69,7 +67,11 @@ public class Game {
 
         mapObjectsCopy.forEach(mapObject -> {
             StringBuilder objectLine = new StringBuilder(gameLines.get(mapObject.getY()));
-            objectLine.setCharAt(mapObject.getX(), mapObject.getCharacter());
+            try {
+                objectLine.setCharAt(mapObject.getX(), mapObject.getCharacter());
+            } catch (StringIndexOutOfBoundsException e) {
+                return;
+            }
             gameLines.set(mapObject.getY(), objectLine.toString());
         });
 
@@ -81,7 +83,10 @@ public class Game {
 
         // Output the lines to console
         gameLines.set(Main.getConsoleHeight() - 1, getScoreLine());
-        gameLines.forEach(line -> Main.getConsole().printf(line));
+
+        StringBuilder builder = new StringBuilder();
+        gameLines.forEach(builder::append);
+        System.out.print(builder.toString() + '\r');
 
     }
 
@@ -202,7 +207,7 @@ public class Game {
                 e.printStackTrace();
             }
 
-            if (System.currentTimeMillis() - player.getLastMove() < 75)
+            if (System.currentTimeMillis() - player.getLastMove() < 25)
                 return;
 
             int newX = player.getX();
