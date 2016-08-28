@@ -1,176 +1,264 @@
 package com.shepherdjerred.maze;
 
-import java.io.Console;
+import com.shepherdjerred.maze.objects.*;
+import jline.console.ConsoleReader;
+
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Game {
 
-    private final char NUMBER_OF_GHOSTS = 4;
-    private final char BLANK_CHAR = ' ';
-
-    private boolean playing = true;
-    private boolean gameWon = false;
-
-    private List<String> lines = new ArrayList<>();
-    private List<Powerup> powerups = new ArrayList<>();
-    private List<Ghost> ghosts = new ArrayList<>();
-    private Console console;
+    private int status = 0;
     private Player player;
 
-    public Game(Console console, Player player) {
-        this.console = console;
-        this.player = player;
-        createField();
+    private List<String> gameLines;
+    private List<MapObject> mapObjects;
+
+    Game() {
+        gameLines = new ArrayList<>();
+        mapObjects = new ArrayList<>();
+        player = new Player(Main.getConsoleWidth() / 2, Main.getConsoleHeight() / 2);
+        mapObjects.add(player);
+        initializeMap();
+        renderGame();
     }
 
-    public void createField() {
-        for (int i = 0; i < 10000; i++) System.out.println();
-
-        int width = jline.TerminalFactory.get().getWidth();
-        int height = jline.TerminalFactory.get().getHeight();
-
-        createGhosts();
-
-        for (int i = 0; i < height; i++) {
+    void initializeMap() {
+        for (int y = 0; y < Main.getConsoleHeight(); y++) {
             String line = "";
-            for (int w = 0; w < width; w++) {
+            for (int x = 0; x < Main.getConsoleWidth(); x++) {
                 double d = Math.random();
-
-                if (d < 0.95) {
-                    line = line.concat(String.valueOf(BLANK_CHAR));
-                } else {
-                    powerups.add(new Powerup(Powerup.PowerupType.POINT, w, i, 5, '*'));
-                    line = line.concat(String.valueOf('*'));
+                line = line.concat(String.valueOf(' '));
+                if (d < .1) {
+                    mapObjects.add(new Barrier(x, y));
+                } else if (d < .15) {
+                    mapObjects.add(new Powerup(x, y, '·', Powerup.Type.POINT, 5));
                 }
+
             }
-            lines.add(line);
+            gameLines.add(line);
         }
 
-        lines.set(height - 1, getScoreLine());
-        lines.forEach(line -> console.printf(line));
-
+        for (int i = 0; i < 4; i++)
+            mapObjects.add(new Ghost(
+                    ThreadLocalRandom.current().nextInt(0, 10 + 1),
+                    ThreadLocalRandom.current().nextInt(0, 10 + 1),
+                    ThreadLocalRandom.current().nextInt(350, 550 + 1),
+                    ThreadLocalRandom.current().nextInt(3, 7 + 1)
+            ));
     }
 
-    public void createGhosts() {
-        for (int i = 0; i < NUMBER_OF_GHOSTS; i++)
-            ghosts.add(new Ghost(i, i, 0, 10));
-    }
+    void renderGame() {
 
-    public boolean isPlaying() {
-        return playing;
-    }
-
-    public void setPlaying(boolean playing) {
-        this.playing = playing;
-    }
-
-    public String getScoreLine() {
-
-        return "Score = " + player.getScore() + "          X: " + player.getX() + "   Y: " + player.getY() + "               Ghosts: " + ghosts.size();
-
-    }
-
-    public void seeIfAtPowerup() {
-
-        Iterator<Powerup> p = powerups.iterator();
-        while (p.hasNext()) {
-            Powerup powerup = p.next();
-
-            if (player.getX() == powerup.getX() && player.getY() == powerup.getY()) {
-                player.doPowerUp(powerup);
-                powerups.remove(powerup);
-                return;
-            }
-        }
-
-        if (powerups.size() == 0) {
-            playing = false;
-            gameWon = true;
-        }
-    }
-
-    public void redraw() {
-
-        for (int i = 0; i < jline.TerminalFactory.get().getHeight(); i++) System.out.println();
-
-        int width = jline.TerminalFactory.get().getWidth();
-        int height = jline.TerminalFactory.get().getHeight();
+        // Clear the screen
+        for (int i = 0; i < Main.getConsoleHeight(); i++) System.out.println();
 
         // Fill the map with blank characters
         // Do this first so the blanks don't ever overwrite other rendered characters
-        for (int i = 0; i < height; i++) {
+        for (int y = 0; y < Main.getConsoleHeight(); y++) {
             String line = "";
-            for (int w = 0; w < width; w++)
-                line = line.concat(String.valueOf(BLANK_CHAR));
-            lines.set(i, line);
+            for (int x = 0; x < Main.getConsoleWidth(); x++)
+                line = line.concat(" ");
+            gameLines.set(y, line);
         }
 
-        // Draw the powerups
-        powerups.forEach(powerup -> {
-            StringBuilder powerupLine = new StringBuilder(lines.get(powerup.getY()));
-            powerupLine.setCharAt(powerup.getX(), '*');
-            lines.set(powerup.getY(), powerupLine.toString());
+        // Add the map objects
+        List<MapObject> mapObjectsCopy = new ArrayList<>(mapObjects);
+
+        mapObjectsCopy.forEach(mapObject -> {
+            StringBuilder objectLine = new StringBuilder(gameLines.get(mapObject.getY()));
+            objectLine.setCharAt(mapObject.getX(), mapObject.getCharacter());
+            gameLines.set(mapObject.getY(), objectLine.toString());
         });
 
-        // Draw the players spawn
-        StringBuilder playerSpawn = new StringBuilder(lines.get(player.getSpawnY()));
-        playerSpawn.setCharAt(player.getSpawnX(), 'S');
-        lines.set(player.getSpawnY(), playerSpawn.toString());
+        // Explicitly render the player
+        // This ensures they're always on top
+        StringBuilder objectLine = new StringBuilder(gameLines.get(player.getY()));
+        objectLine.setCharAt(player.getX(), player.getCharacter());
+        gameLines.set(player.getY(), objectLine.toString());
 
-        // Draw the ghosts
-        // Do this second to last, so they aren't hidden by anything but the player
-        ghosts.forEach(ghost -> {
-            StringBuilder ghostLine = new StringBuilder(lines.get(ghost.getY()));
-            ghostLine.setCharAt(ghost.getX(), '#');
-            lines.set(ghost.getY(), ghostLine.toString());
-        });
-
-        // Draw the player
-        // We do this last to ensure it's ALWAYS visible
-        StringBuilder playerLine = new StringBuilder(lines.get(player.getY()));
-        playerLine.setCharAt(player.getX(), '@');
-        lines.set(player.getY(), playerLine.toString());
-
-        lines.set(height - 1, getScoreLine());
-        lines.forEach(line -> console.printf(line));
+        // Output the lines to console
+        gameLines.set(Main.getConsoleHeight() - 1, getScoreLine());
+        gameLines.forEach(line -> Main.getConsole().printf(line));
 
     }
 
-    public void seeIfOnGhost() {
-        ghosts.forEach(ghost -> {
-            if (player.getX() == ghost.getX() && player.getY() == ghost.getY())
-                playing = false;
-        });
-
-        if (powerups.size() == 0) {
-            playing = false;
-            gameWon = true;
-        }
+    String getScoreLine() {
+        return "Score = " + player.getScore() + "          X: " + player.getX() + "   Y: " + player.getY();
     }
 
-    public void runGhostLogic() {
+    void runGameLoop() {
+        runGhostLogic();
 
-        long time = System.currentTimeMillis();
+        while (status == 0)
+            listenForKeys();
+    }
 
-        ghosts.forEach(ghost -> {
-            if (time - ghost.getLastMove() > ghost.getSpeed()) {
-                ghost.moveTowardsPlayer();
+    void runGhostLogic() {
+        Thread ai = new Thread() {
+            public void run() {
+                while (status == 0) {
+                    List<MapObject> mapObjectsCopy = new ArrayList<>(mapObjects);
+
+                    mapObjectsCopy.forEach(mapObject -> {
+                        if (mapObject instanceof Ghost) {
+
+                            Ghost ghost = (Ghost) mapObject;
+                            if (System.currentTimeMillis() - ghost.getLastMove() > ghost.getSpeed()) {
+
+                                int newY = mapObject.getY();
+                                int newX = mapObject.getX();
+
+                                if (ghost.getMoveFails() < ghost.getSmartness()) {
+                                    if (player.getX() > ghost.getX())
+                                        newX += 1;
+                                    if (player.getY() > ghost.getY())
+                                        newY += 1;
+                                    if (player.getX() < ghost.getX())
+                                        newX -= 1;
+                                    if (player.getY() < ghost.getY())
+                                        newY -= 1;
+                                } else {
+                                    double d = Math.random();
+                                    if (d < 0.5) {
+                                        newX += 1;
+                                        newY += 1;
+                                    } else {
+                                        newX -= 1;
+                                        newY -= 1;
+                                    }
+                                }
+
+                                if (newX != mapObject.getX() && newY != mapObject.getY()) {
+                                    double d = Math.random();
+
+                                    // 50% chance of either the X or Y being changed
+                                    // This ensures the ghosts never make two moves at once
+                                    if (d < 0.5) {
+                                        newX = ghost.getX();
+                                    } else {
+                                        newY = ghost.getY();
+                                    }
+                                }
+
+                                if (checkNoCollision(ghost, newX, newY)) {
+                                    ghost.setMoveFails(ghost.getMoveFails() - 1);
+                                    ghost.setLastMove(System.currentTimeMillis());
+                                    mapObject.setX(newX);
+                                    mapObject.setY(newY);
+                                    checkGhostCollision();
+                                    renderGame();
+                                } else {
+                                    ghost.setMoveFails(ghost.getMoveFails() + 1);
+                                }
+
+                            }
+                        }
+                    });
+                }
             }
+        };
+
+        ai.start();
+    }
+
+    void checkGhostCollision() {
+
+        mapObjects.forEach(mapObject -> {
+
+            if (mapObject instanceof Ghost) {
+                Ghost ghost = (Ghost) mapObject;
+                if (player.getX() == ghost.getX() && player.getY() == ghost.getY())
+                    status = 2;
+            }
+
         });
 
     }
 
-    public boolean isGameWon() {
-        return gameWon;
+    void listenForKeys() {
+
+        ConsoleReader cr = null;
+
+        try {
+            cr = new ConsoleReader();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (cr.getInput() != null) {
+            int read = 0;
+
+            try {
+                read = cr.readCharacter();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            int newX = player.getX();
+            int newY = player.getY();
+
+            if (read == 's')
+                newY++;
+
+            if (read == 'a')
+                newX--;
+
+            if (read == 'w')
+                newY--;
+
+            if (read == 'd')
+                newX++;
+
+            if (checkNoCollision(player, newX, newY) && status == 0) {
+                player.setLastMove(System.currentTimeMillis());
+                player.setX(newX);
+                player.setY(newY);
+                checkGhostCollision();
+                checkPowerupCollision();
+                renderGame();
+            }
+        }
     }
 
-    public Player getPlayer() {
-        return player;
+    boolean checkNoCollision(MapObject mapObject, int newX, int newY) {
+
+        if (newX < 0 || newY < 0 || newX > Main.getConsoleWidth() - 1 || newY > Main.getConsoleHeight() - 2)
+            return false;
+
+        for (MapObject object : mapObjects) {
+            if (object instanceof Powerup || object instanceof Player)
+                continue;
+            if (newX == object.getX() && newY == object.getY()) {
+                if (mapObject instanceof Ghost && object instanceof Ghost)
+                    return false;
+                return false;
+            }
+        }
+
+        return true;
+
     }
 
-    public List<Ghost> getGhosts() {
-        return ghosts;
+    void checkPowerupCollision() {
+
+        Powerup powerup = null;
+
+        for (MapObject mapObject : mapObjects) {
+            if (mapObject instanceof Powerup && mapObject.getX() == player.getX() && mapObject.getY() == player.getY())
+                powerup = (Powerup) mapObject;
+        }
+
+        if (powerup != null) {
+            mapObjects.remove(powerup);
+            player.runPowerup(powerup);
+        }
+
+    }
+
+    public int getStatus() {
+        return status;
     }
 }
