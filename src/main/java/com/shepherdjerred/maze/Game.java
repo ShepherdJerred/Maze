@@ -2,6 +2,7 @@ package com.shepherdjerred.maze;
 
 import com.shepherdjerred.maze.objects.*;
 import jline.console.ConsoleReader;
+import org.apache.commons.lang3.text.WordUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,9 +11,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Game {
 
-    public final int GHOST_COUNT = 40;
     private int status = 0;
     private Player player;
+    private int[] spawn = {1, 1};
 
     private List<String> gameLines;
     private List<MapObject> mapObjects;
@@ -20,35 +21,131 @@ public class Game {
     Game() {
         gameLines = new ArrayList<>();
         mapObjects = new ArrayList<>();
-        player = new Player(Main.getConsoleWidth() / 2, Main.getConsoleHeight() / 2);
-        mapObjects.add(player);
         initializeMap();
+        player = new Player(spawn[0], spawn[1]);
+        mapObjects.add(player);
         renderGame();
     }
 
-    void initializeMap() {
+    void generateMaze() {
+
         for (int y = 0; y < Main.getConsoleHeight(); y++) {
-            String line = "";
             for (int x = 0; x < Main.getConsoleWidth(); x++) {
+                mapObjects.add(new Barrier(x, y));
+            }
+        }
+
+        // Create a spawnpoint for the player
+        spawn[0] = ThreadLocalRandom.current().nextInt(1, Main.getConsoleWidth());
+        spawn[1] = ThreadLocalRandom.current().nextInt(1, Main.getConsoleHeight() - 2);
+
+        List<MapObject> mapObjectsCopy = new ArrayList<>(mapObjects);
+
+        for (MapObject mapObject : mapObjectsCopy) {
+            if (mapObject.getX() == spawn[0] && mapObject.getY() == spawn[1])
+                mapObjects.remove(mapObject);
+        }
+
+        int[] currentLocation = spawn;
+
+        for (int i = 0; i < 8000; i++) {
+            int randomX = currentLocation[0] + ThreadLocalRandom.current().nextInt(-1, 1);
+            int randomY = currentLocation[1] + ThreadLocalRandom.current().nextInt(-1, 1);
+
+            if (randomX != currentLocation[0] && randomY != currentLocation[1]) {
                 double d = Math.random();
-                line = line.concat(String.valueOf(' '));
-                if (d < .15) {
-                    mapObjects.add(new Barrier(x, y));
-                } else if (d < .175) {
-                    mapObjects.add(new Powerup(x, y, '·', Powerup.Type.POINT, 5));
+
+                if (d < 0.5) {
+                    randomX = currentLocation[0];
+                } else {
+                    randomY = currentLocation[1];
+                }
+            }
+
+            if (randomX < 0 || randomY < 0 || randomX > Main.getConsoleWidth() || randomY > Main.getConsoleHeight() - 2) {
+                randomX = ThreadLocalRandom.current().nextInt(0, Main.getConsoleWidth());
+
+                if (Math.random() < 0.5) {
+                    randomY = ThreadLocalRandom.current().nextInt(0, Main.getConsoleHeight() - 2);
+                } else {
+                    randomY = ThreadLocalRandom.current().nextInt(20, Main.getConsoleHeight() - 2);
                 }
 
             }
-            gameLines.add(line);
+
+            for (MapObject mapObject : mapObjectsCopy) {
+                if (mapObject.getX() == currentLocation[0] && mapObject.getY() == currentLocation[1])
+                    mapObjects.remove(mapObject);
+            }
+
+            currentLocation[0] = randomX;
+            currentLocation[1] = randomY;
         }
 
-        for (int i = 0; i < GHOST_COUNT; i++)
-            mapObjects.add(new Ghost(
-                    ThreadLocalRandom.current().nextInt(0, 10 + 1),
-                    ThreadLocalRandom.current().nextInt(0, 10 + 1),
-                    ThreadLocalRandom.current().nextInt(150, 550 + 1),
-                    ThreadLocalRandom.current().nextInt(3, 7 + 1)
-            ));
+    }
+
+    void generatePowerups() {
+
+        for (int y = 0; y < Main.getConsoleHeight(); y++) {
+            outerloop:
+            for (int x = 0; x < Main.getConsoleWidth(); x++) {
+
+                for (MapObject mapObject : mapObjects) {
+                    if (mapObject.getX() == x && mapObject.getY() == y)
+                        continue outerloop;
+                }
+
+                double d = Math.random();
+                if (d < .075) {
+                    mapObjects.add(new Powerup(x, y, '·', Powerup.Type.POINT, 5));
+                } else if (d < .085) {
+                    mapObjects.add(new Powerup(x, y, '#', Powerup.Type.EAT, 20));
+                }
+            }
+        }
+
+    }
+
+    void spawnGhost() {
+
+        int randX = 1;
+        int randY = 1;
+        boolean spawnSuccess = false;
+
+        outerloop:
+        while (!spawnSuccess) {
+            randX = ThreadLocalRandom.current().nextInt(1, 10 + 1);
+            randY = ThreadLocalRandom.current().nextInt(1, 10 + 1);
+            for (MapObject mapObject : mapObjects) {
+                if (mapObject.getX() == randX && mapObject.getY() == randY)
+                    continue outerloop;
+                else
+                    spawnSuccess = true;
+            }
+        }
+
+        mapObjects.add(new Ghost(randX, randY));
+
+    }
+
+    void createGhosts() {
+
+        for (int i = 0; i < 4; i++)
+            spawnGhost();
+
+    }
+
+    void initializeMap() {
+        generateMaze();
+        generatePowerups();
+        createGhosts();
+
+        for (int y = 0; y < Main.getConsoleHeight(); y++) {
+            String line = "";
+            for (int x = 0; x < Main.getConsoleWidth(); x++)
+                line = line.concat(String.valueOf(' '));
+            gameLines.add(line);
+        }
     }
 
     void renderGame() {
@@ -91,12 +188,20 @@ public class Game {
     }
 
     String getScoreLine() {
-        int powerupCount = 0;
-        for (MapObject mapObject : mapObjects)
-            if (mapObject instanceof Powerup)
-                powerupCount++;
+        int pointCount = 0;
+        int ghostCount = 0;
+        for (MapObject mapObject : mapObjects) {
+            if (mapObject instanceof Powerup && ((Powerup) mapObject).getType() == Powerup.Type.POINT)
+                pointCount++;
+            else if (mapObject instanceof Ghost)
+                ghostCount++;
+        }
 
-        return " Score = " + player.getScore() + "          X: " + player.getX() + "   Y: " + player.getY() + "          Ghosts: " + GHOST_COUNT + "          Remaining Powerups: " + powerupCount;
+        String powerup = "None";
+        if (player.getType() != null)
+            powerup = WordUtils.capitalize(player.getType().toString());
+
+        return " Score = " + player.getScore() + "      X: " + player.getX() + "   Y: " + player.getY() + "      Ghosts: " + ghostCount + "      Remaining Points: " + pointCount + "      Current Powerup: " + powerup;
     }
 
     void runGameLoop() {
@@ -107,7 +212,7 @@ public class Game {
     }
 
     void runGhostLogic() {
-        Thread ai = new Thread() {
+        new Thread() {
             public void run() {
                 while (status == 0) {
                     List<MapObject> mapObjectsCopy = new ArrayList<>(mapObjects);
@@ -153,7 +258,7 @@ public class Game {
                                     }
                                 }
 
-                                if (checkNoCollision(ghost, newX, newY)) {
+                                if (moveIsValid(ghost, newX, newY)) {
                                     ghost.setMoveFails(ghost.getMoveFails() - 1);
                                     ghost.setLastMove(System.currentTimeMillis());
                                     mapObject.setX(newX);
@@ -169,22 +274,38 @@ public class Game {
                     });
                 }
             }
-        };
-
-        ai.start();
+        }.start();
     }
 
     void checkGhostCollision() {
 
-        mapObjects.forEach(mapObject -> {
+        Ghost ghost = null;
 
-            if (mapObject instanceof Ghost) {
-                Ghost ghost = (Ghost) mapObject;
-                if (player.getX() == ghost.getX() && player.getY() == ghost.getY())
-                    status = 2;
+        for (MapObject mapObject : mapObjects) {
+            if (mapObject instanceof Ghost && mapObject.getX() == player.getX() && mapObject.getY() == player.getY())
+                ghost = (Ghost) mapObject;
+        }
+
+        if (ghost != null)
+            if (player.getType() == Powerup.Type.EAT) {
+                player.setType(null);
+                mapObjects.remove(ghost);
+
+                new Thread() {
+                    public void run() {
+                        try {
+                            sleep(10000);
+                            spawnGhost();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            e.printStackTrace();
+                        }
+                    }
+                }.start();
+
+            } else {
+                status = 2;
             }
-
-        });
 
     }
 
@@ -225,7 +346,7 @@ public class Game {
             if (read == 'd')
                 newX++;
 
-            if (checkNoCollision(player, newX, newY) && status == 0) {
+            if (moveIsValid(player, newX, newY) && status == 0) {
                 player.setLastMove(System.currentTimeMillis());
                 player.setX(newX);
                 player.setY(newY);
@@ -236,7 +357,7 @@ public class Game {
         }
     }
 
-    boolean checkNoCollision(MapObject mapObject, int newX, int newY) {
+    boolean moveIsValid(MapObject mapObject, int newX, int newY) {
 
         if (newX < 0 || newY < 0 || newX > Main.getConsoleWidth() - 1 || newY > Main.getConsoleHeight() - 2)
             return false;
@@ -249,6 +370,8 @@ public class Game {
             if (newX == object.getX() && newY == object.getY()) {
                 if (mapObject instanceof Ghost && object instanceof Ghost)
                     return false;
+                else if (object instanceof Ghost)
+                    return true;
                 return false;
             }
         }
@@ -267,6 +390,8 @@ public class Game {
         }
 
         if (powerup != null) {
+            if (powerup.getType() != Powerup.Type.POINT && player.getType() != null)
+                return;
             mapObjects.remove(powerup);
             player.runPowerup(powerup);
         }

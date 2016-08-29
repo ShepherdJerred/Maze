@@ -6,6 +6,7 @@ public class Player extends MapObject {
     private int spawnY;
     private int score;
     private long lastMove;
+    private Powerup.Type type;
 
     public Player(int x, int y) {
         super(x, y, '@');
@@ -47,9 +48,31 @@ public class Player extends MapObject {
                 score += powerup.getModifier();
                 break;
             case EAT:
+                type = Powerup.Type.EAT;
                 break;
-
         }
 
+        if (type != null)
+            new Thread() {
+                public void run() {
+                    try {
+                        sleep(powerup.getModifier() * 1000);
+                        type = null;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        e.printStackTrace();
+                    }
+                }
+
+            }.start();
+
+    }
+
+    public Powerup.Type getType() {
+        return type;
+    }
+
+    public void setType(Powerup.Type type) {
+        this.type = type;
     }
 }

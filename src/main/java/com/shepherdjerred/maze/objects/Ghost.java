@@ -1,5 +1,7 @@
 package com.shepherdjerred.maze.objects;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Ghost extends MapObject {
 
     private long lastMove;
@@ -7,12 +9,12 @@ public class Ghost extends MapObject {
     private int speed;
     private int smartness;
 
-    public Ghost(int x, int y, int speed, int smartness) {
+    public Ghost(int x, int y) {
         super(x, y, 'O');
         lastMove = 0;
         moveFails = 0;
-        this.speed = speed;
-        this.smartness = smartness;
+        this.speed = ThreadLocalRandom.current().nextInt(150, 550 + 1);
+        this.smartness = ThreadLocalRandom.current().nextInt(3, 7 + 1);
     }
 
     public long getLastMove() {
