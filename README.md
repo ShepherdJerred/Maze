@@ -5,7 +5,7 @@ It took me a couple of hours to make and really isn't that complicated. But it w
 
 ![Screen](http://www.redwarfare.com/proxy.php?image=http%3A%2F%2Fi.imgur.com%2FmE31kyA.png&hash=a6a100d670376e435679956bdd1f5ec4) 
 
-The map is random every time, although it generally looks pretty much the same. Each ghost is also unique, and is given randomly properly when (re)spawned.
+The map is random every time, although it generally looks pretty much the same. Each ghost is also unique, and is given random properties when (re)spawned.
 
 ![Screen](http://www.redwarfare.com/proxy.php?image=http%3A%2F%2Fi.imgur.com%2FGpwB9oA.png&hash=f8bf6ee29b494b4539b09d4d022fcd79)
 
