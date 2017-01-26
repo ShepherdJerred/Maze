@@ -3,11 +3,11 @@ You control a character (The @ sign) with the WASD keys and your goal is to coll
 
 It took me a couple of hours to make and really isn't that complicated. But it was fun to make a logic loop, learn about console output, really basic AI (the ghosts) and other stuff like that.
 
-![Screen](http://www.redwarfare.com/proxy.php?image=http%3A%2F%2Fi.imgur.com%2FmE31kyA.png&hash=a6a100d670376e435679956bdd1f5ec4) 
+![Screen](http://i.imgur.com/mE31kyA.png) 
 
 The map is random every time, although it generally looks pretty much the same. Each ghost is also unique, and is given random properties when (re)spawned.
 
-![Screen](http://www.redwarfare.com/proxy.php?image=http%3A%2F%2Fi.imgur.com%2FGpwB9oA.png&hash=f8bf6ee29b494b4539b09d4d022fcd79)
+![Screen](http://i.imgur.com/GpwB9oA.png)
 
 Playing the game
 
@@ -28,4 +28,4 @@ Notes
 * It might not be possible to win on every map.. I forgot if walls can generate over the points
 * It's probably really buggy
 
-![End](http://www.redwarfare.com/proxy.php?image=http%3A%2F%2Fi.imgur.com%2FrSwkZ0k.png&hash=9d432824472f821a43c46b07629248f8)
+![End](http://i.imgur.com/rSwkZ0k.png)
