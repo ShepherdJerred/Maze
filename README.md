@@ -1,6 +1,8 @@
 # Maze
 [![Build Status](https://travis-ci.org/ShepherdJerred/maze-game.svg?branch=master)](https://travis-ci.org/ShepherdJerred/maze-game)
 
+## About
+
 You control a character (The @ sign) with the WASD keys and your goal is to collect all the dots on the map. The big O's are ghosts that'll try to eat you, and the hashtags can be picked up to eat a ghost.
 
 It took me a couple of hours to make and really isn't that complicated. But it was fun to make a logic loop, learn about console output, really basic AI (the ghosts) and other stuff like that.
@@ -11,7 +13,7 @@ The map is random every time, although it generally looks pretty much the same. 
 
 ![Screen](http://i.imgur.com/GpwB9oA.png)
 
-Playing the game
+### Playing the game
 
 1. Download the [latest release](https://github.com/ShepherdJerred/Maze/releases/latest)
 2. Create a .bat file with the following
